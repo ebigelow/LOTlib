@@ -30,7 +30,7 @@ all_queries = set.union( *[set(d.queries) for d in data] )
 # int<lower=0> C[h,r];                // rule counts for each hypothesis
 # real<upper=0> L[h,d];               // likelihood of data.input
 # int<lower=0,upper=1> R[h,d,q];      // is each data.query in each hypothesis  (1/0)
-# int<lower=0> D[d,q,2];              // human response for each data.query  (# yes, # no)
+# real<lower=0> D[d,q,2];              // human response for each data.query  (# yes, # no)
 
 h = len(gh.hypotheses)
 r = gh.n
@@ -54,7 +54,7 @@ for d_idx, datum in enumerate(data):
         # L[h_idx, d_idx] = hypothesis.compute_likelihood(datum.data)
         L[d_idx][h_idx] = hypothesis.compute_likelihood(datum.data)
 
-        for query, response, q_idx in datum.get_queries():
+        for q_idx, query in enumerate(all_queries):
             # R[h_idx, d_idx, q_idx] = int(query in hypothesis())
             R[d_idx][q_idx][h_idx] = int(query in hypothesis())
 
@@ -67,6 +67,7 @@ stan_data = {
     'r': r,
     'd': d,
     'q': q,
+    'D': D,
     'C': C,
     'L': L,
     'R': R
