@@ -110,9 +110,13 @@ class GrammarHypothesisVectorizedMPI(GrammarHypothesis):
         x = self.normalized_value()         # vector of rule probabilites
         P = np.dot(self.C, x)               # prior for each hypothesis
 
-        # Compute each likelihood; "wow very parallel such MPI wow"
-        likelihood = sum(MPI_unorderedmap(self.compute_single_likelihood_MPI,
-                                          [(d_index, d, P) for d_index, d in enumerate(data)]))
+        # Compute likelihood by MPI
+        mpi_likelihood = MPI_unorderedmap(self.compute_single_likelihood_MPI,
+                                          [(d_index, d, P) for d_index, d in enumerate(data)])
+        likelihood = 0.0
+        for like in mpi_likelihood:
+            likelihood += like
+
         if update_post:
             self.likelihood = likelihood
             self.update_posterior()
