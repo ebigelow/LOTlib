@@ -112,15 +112,14 @@ class GrammarHypothesisVectorizedMPI(GrammarHypothesis):
 
         # Compute each likelihood; "wow very parallel such MPI wow"
         likelihood = sum(MPI_unorderedmap(self.compute_single_likelihood_MPI,
-                                          [(d, d_index, P) for d, d_index in enumerate(data)]))
+                                          [(d_index, d, P) for d, d_index in enumerate(data)]))
         if update_post:
             self.likelihood = likelihood
             self.update_posterior()
         return likelihood
 
-
     def compute_single_likelihood_MPI(self, input_args):
-        d, d_index, P = input_args
+        d_index, d, P = input_args
         posteriors = self.L[d_index] + P
         Z = logsumexp(posteriors)
         w = np.exp(posteriors - Z)              # weights for each hypothesis
