@@ -13,7 +13,7 @@ data {
     int<lower=0> d;                     // # of data points
     int<lower=0> q;                     // max # of queries for a given datum
 
-    real<lower=0> x_init[r];            // Initial rule probabilites (used for non-proposed indexes)
+    vector<lower=0>[r] x_init;            // Initial rule probabilites (used for non-proposed indexes)
     int<lower=0> P[p];                  // proposal indexes
     matrix<lower=0>[h,r] C;             // rule counts for each hypothesis
     vector<upper=0>[h] L[d];            // log likelihood of data.input
@@ -29,9 +29,9 @@ parameters {
 }
 
 transformed parameters {
-    real<lower=0> x_full[r];
+    vector<lower=0>[r] x_full;
 
-    x_full <- x_init
+    x_full <- x_init;
     for (i in 1:p) {
         x_full[P[i]] <- x_propose[P[i]];
     }
