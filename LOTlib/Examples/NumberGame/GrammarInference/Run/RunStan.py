@@ -8,20 +8,40 @@ __author__ = 'Eric Bigelow'
 stan_code = """
 data {
     int<lower=1> h;                     // # of domain hypotheses
+    int<lower=1> p;                     // # of rules proposed to
     int<lower=1> r;                     // # of rules in total
     int<lower=0> d;                     // # of data points
     int<lower=0> q;                     // max # of queries for a given datum
+
+    real<lower=0> x_init[r]             // Initial rule probabilites (used for non-proposed indexes)
+    int<lower=0, upper=1> P[r];         // proposal mask
     matrix<lower=0>[h,r] C;             // rule counts for each hypothesis
     vector<upper=0>[h] L[d];            // log likelihood of data.input
     vector<lower=0,upper=1>[h] R[d,q];  // is each data.query in each hypothesis  (1/0)
     real<lower=0> D[d,q,2];             // human response for each data.query  (# yes, # no)
-}
 
+    real alpha;                         // shape of prior gamma
+    real beta;                          // inverse scale of prior gamma
+}
 
 parameters {
-    vector<lower=0>[r] x;               // normalized vector of rule probabilities
+    real<lower=0> x_propose[p];         // normalized vector of rule probabilities
 }
 
+transformed parameters {
+    real<lower=0> x_full[r];
+    int j;
+
+    j = 0;
+    for i in (1:r) {
+        if (P[i] > 0) {
+            x_full[i] = x_propose[j];
+            j = j + 1;
+        } else {
+            x_full[i] = x_init[i];
+        }
+    }
+}
 
 model {
     vector[h] priors;
@@ -34,10 +54,10 @@ model {
     real bc;
 
     // Prior
-    increment_log_prob(gamma_log(1,2,3));   // TODO: what are these args???
+    increment_log_prob(gamma_log(x_full,alpha,beta));       // TODO: should alpha / beta be vectors?
 
     // Likelihood model
-    priors <- C * x;                        // prior for each hypothesis
+    priors <- C * x_full;                   // prior for each hypothesis
 
     for (i in 1:d) {
         posteriors <- L[i] + priors;
@@ -71,7 +91,7 @@ with open('stan_data.p', 'rb') as f:
     stan_data = pickle.load(f)
 
 stan_model = pystan.StanModel(model_code=stan_code)
-fit = stan_model.sampling(data=stan_data, iter=1000, chains=4)
+fit = stan_model.sampling(data=stan_data, iter=1000, chains=4, warmup=10)
 
 print(fit)
 with open('stan_model.p', 'w') as f:

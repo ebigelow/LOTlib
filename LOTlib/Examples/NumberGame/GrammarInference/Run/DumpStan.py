@@ -26,24 +26,30 @@ all_queries = set.union( *[set(d.queries) for d in data] )
 # int<lower=1> r;                     // # of rules in total
 # int<lower=0> d;                     // # of data points
 # int<lower=0> q;                     // max # of queries for a given datum
-
+# int<lower=1> p;                     // # of rules proposed to
+#
+# real<lower=0> x_init[r]             // Initial rule probabilites (used for non-proposed indexes)
+# int<lower=0, upper=1> P[p];         // proposal mask
 # int<lower=0> C[h,r];                // rule counts for each hypothesis
-# real<upper=0> L[h,d];               // likelihood of data.input
-# int<lower=0,upper=1> R[h,d,q];      // is each data.query in each hypothesis  (1/0)
-# real<lower=0> D[d,q,2];              // human response for each data.query  (# yes, # no)
+# vector<upper=0>[h] L[d];            // log likelihood of data.input
+# vector<lower=0,upper=1>[h] R[d,q];  // is each data.query in each hypothesis  (1/0)
+# real<lower=0> D[d,q,2];             // human response for each data.query  (# yes, # no)
+#
+# real alpha;                         // shape of prior gamma
+# real beta;                          // inverse scale of prior gamma
 
+
+P = [int(i) for i in gh.get_propose_mask()]
+
+p = sum(P)
 h = len(gh.hypotheses)
 r = gh.n
 d = len(data)
 q = len(all_queries)
 
-# vector<upper=0>[h] L[d];            // log likelihood of data.input
-# vector<lower=0,upper=1>[h] R[d,q];  // is each data.query in each hypothesis  (1/0)
-
+X_init = gh.normalized_value()
 C = gh.C
-# L = np.zeros((h, d))
 L = [np.zeros((h))] * d
-# R = np.zeros((h, d, q))
 R = [[np.zeros((h))] * q] * d
 D = np.zeros((d, q, 2))
 
@@ -67,8 +73,13 @@ stan_data = {
     'r': r,
     'd': d,
     'q': q,
-    'D': D,
+    'p': p,
+    'alpha': gh.prior_shape,
+    'beta': gh.prior_scale,
+    'X_init': X_init,
+    'P': P,
     'C': C,
+    'D': D,
     'L': L,
     'R': R
 }
