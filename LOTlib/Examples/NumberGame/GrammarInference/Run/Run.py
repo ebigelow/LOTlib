@@ -59,7 +59,8 @@ def run(grammar=lot_grammar, mixture_model=0, data=toy_exp_3,
         iters=10000, skip=10, cap=100, print_stuff='sgr',
         ngh='out/ngh_100k', hypotheses=None, domain=100, alpha=0.9,
         save_file='', csv_freq=500,
-        pickle_summary=False, pickle_gh=0):
+        pickle_summary=False, pickle_gh=0,
+        mpi=False):
     """
     Enumerate some NumberGameHypotheses, then use these to sample some GrammarHypotheses over `data`.
 
@@ -91,10 +92,16 @@ def run(grammar=lot_grammar, mixture_model=0, data=toy_exp_3,
     """
     # --------------------------------------------------------------------------------------------------------
 
-    if mixture_model:
-        ParameterHypothesis = MixtureGrammarHypothesis
+    if mpi:
+        if mixture_model:
+            ParameterHypothesis = MixtureGrammarHypothesisMPI
+        else:
+            ParameterHypothesis = NoConstGrammarHypothesisMPI
     else:
-        ParameterHypothesis = NoConstGrammarHypothesis
+        if mixture_model:
+            ParameterHypothesis = MixtureGrammarHypothesis
+        else:
+            ParameterHypothesis = NoConstGrammarHypothesis
 
     # --------------------------------------------------------------------------------------------------------
     # Load NumberGameHypotheses
@@ -212,6 +219,10 @@ if __name__ == "__main__":
                       action="store_true", dest="quiet", default=True,
                       help="Print nothing!")
 
+    parser.add_option("--mpi",
+                  action="store_true", dest="mpi", default=False,
+                  help="Do we use MPI?")
+
     (options, args) = parser.parse_args()
 
     # --------------------------------------------------------------------------------------------------------
@@ -257,4 +268,5 @@ if __name__ == "__main__":
         ngh=options.ngh_file,
         print_stuff=print_stuff,
         save_file=path+options.save_file, csv_freq=options.csv_freq,
-        pickle_summary=options.picklesummary, pickle_gh=options.pickle)
+        pickle_summary=options.picklesummary, pickle_gh=options.pickle,
+        mpi=options.mpi)

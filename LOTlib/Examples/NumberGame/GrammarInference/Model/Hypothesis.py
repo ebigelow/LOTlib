@@ -1,4 +1,5 @@
 from LOTlib.Hypotheses.GrammarHypothesisVectorized import GrammarHypothesisVectorized
+from LOTlib.Hypotheses.GrammarHypothesisVectorizedMPI import GrammarHypothesisVectorizedMPI
 from LOTlib.Miscellaneous import logsumexp, exp
 
 class NumberGameGrammarHypothesis(GrammarHypothesisVectorized):
@@ -109,3 +110,43 @@ class MixtureGrammarHypothesis(GrammarHypothesisVectorized):
         propose_mask[self.get_rules(rule_to='MATH')[0][0]] = True
         propose_mask[self.get_rules(rule_to='INTERVAL')[0][0]] = True
 
+
+
+
+
+class NoConstGrammarHypothesisMPI(GrammarHypothesisVectorizedMPI):
+    """
+    Don't propose to rules with 'CONST' as the rhs variable.
+
+    """
+
+    def get_propose_mask(self):
+        """Only propose to rules with other rules with same NT."""
+        propose_mask = [True] * self.n
+
+        # Don't propose to constants
+        idxs, r = self.get_rules(rule_nt='CONST')
+        for i in idxs:
+            propose_mask[i] = False
+
+        # Only rules with alternatives/siblings
+        for i, nt in enumerate(self.grammar.nonterminals()):
+            idxs, r = self.get_rules(rule_nt=nt)
+            if len(idxs) == 1:
+                propose_mask[i] = False
+
+        return propose_mask
+
+
+class MixtureGrammarHypothesisMPI(GrammarHypothesisVectorizedMPI):
+    """
+    This will let us single out 'MATH' rules & 'INTERVAL' rules as `lambda` & `(1-lambda)`.
+
+    """
+
+    def get_propose_mask(self):
+        """Only propose to rules with other rules with same NT."""
+        propose_mask = [False] * self.n
+
+        propose_mask[self.get_rules(rule_to='MATH')[0][0]] = True
+        propose_mask[self.get_rules(rule_to='INTERVAL')[0][0]] = True

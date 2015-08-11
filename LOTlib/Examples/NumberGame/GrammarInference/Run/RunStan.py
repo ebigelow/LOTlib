@@ -14,7 +14,7 @@ data {
     matrix<lower=0>[h,r] C;             // rule counts for each hypothesis
     vector<upper=0>[h] L[d];            // log likelihood of data.input
     vector<lower=0,upper=1>[h] R[d,q];  // is each data.query in each hypothesis  (1/0)
-    int<lower=0> D[d,q,2];              // human response for each data.query  (# yes, # no)
+    real<lower=0> D[d,q,2];             // human response for each data.query  (# yes, # no)
 }
 
 
@@ -28,8 +28,8 @@ model {
     vector[h] posteriors;
     vector[h] w;
     real Z;
-    int k;
-    int n;
+    real k;
+    real n;
     real pr;
     real bc;
 
@@ -37,21 +37,21 @@ model {
     increment_log_prob(gamma_log(1,2,3));   // TODO: what are these args???
 
     // Likelihood model
-    priors <- C * x;                         // prior for each hypothesis
+    priors <- C * x;                        // prior for each hypothesis
 
     for (i in 1:d) {
         posteriors <- L[i] + priors;
         Z <- log_sum_exp(posteriors);
-        w <- exp(posteriors - Z);            // weights for each hypothesis
+        w <- exp(posteriors - Z);           // weights for each hypothesis
 
         for (j in 1:q) {
-            k <- D[i,j,0];                   // num. yes responses
-            n <- D[i,j,0] + D[i,j,1];        // num. trials
+            k <- D[i,j,1];                  // num. yes responses
+            n <- D[i,j,1] + D[i,j,2];       // num. trials
 
             // If we have human responses for this query
             if (n > 0) {
-                pr <- log(sum(w .* R[i, j]));                         // logsum of binary values for yes/no
-                bc <- tgamma(n+1) - (tgamma(k+1) + tgamma(n-k+1));       // binomial coefficient
+                pr <- log(sum(w .* R[i, j]));                           // logsum of binary values for yes/no
+                bc <- tgamma(n+1) - (tgamma(k+1) + tgamma(n-k+1));      // binomial coefficient
                 increment_log_prob(bc + (k*pr) + (n-k)*log1m_exp(pr));  // likelihood we got human output
             }
         }
@@ -67,19 +67,24 @@ model {
 import pystan, pickle
 import numpy as np
 
-f = open('stan_data.p')
-stan_data = pickle.load(f)
+with open('stan_data.p', 'rb') as f:
+    stan_data = pickle.load(f)
 
-fit = pystan.stan(model_code=stan_code, data=stan_data,
-                  iter=1000, chains=4)
+stan_model = pystan.StanModel(model_code=stan_code)
+fit = stan_model.sampling(data=stan_data, iter=1000, chains=4)
+
+print(fit)
+with open('stan_model.p', 'w') as f:
+    pickle.dump(stan_model, f)
+with open('stan_fit.p', 'w') as f:
+    pickle.dump(fit, f)
 
 la = fit.extract(permuted=True)  # return a dictionary of arrays
 mu = la['mu']
 
 # return an array of three dimensions: iterations, chains, parameters
 a = fit.extract(permuted=False)
-print(fit)
-fit.plot()
+# fit.plot()
 
 
 

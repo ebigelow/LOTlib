@@ -369,13 +369,13 @@ class GrammarHypothesis(VectorHypothesis):
             i = 0
 
             for d in data:
-                posteriors = [sum(h.compute_posterior(d.data)) for h in hypotheses]
+                posteriors = [h.compute_posterior(d.data) for h in hypotheses]
                 Z = logsumexp(posteriors)
                 weights = [(post-Z) for post in posteriors]
-                print i, '\t|\t', d.input
+                print i, '\t|\t', d.data.input
                 i += 1
 
-                for q, r in d.get_queries():
+                for q, r, m in d.get_queries():
                     # Probability for yes on output `o` is sum of posteriors for hypos that contain `o`
                     p_human = float(r[0]) / float(r[0] + r[1])
                     p_model = sum([math.exp(w) if q in h() else 0 for h, w in zip(hypotheses, weights)])
