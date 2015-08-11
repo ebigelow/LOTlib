@@ -13,8 +13,8 @@ data {
     int<lower=0> d;                     // # of data points
     int<lower=0> q;                     // max # of queries for a given datum
 
-    real<lower=0> x_init[r]             // Initial rule probabilites (used for non-proposed indexes)
-    int<lower=0, upper=1> P[r];         // proposal mask
+    real<lower=0> x_init[r];            // Initial rule probabilites (used for non-proposed indexes)
+    int<lower=0> P[p];                  // proposal indexes
     matrix<lower=0>[h,r] C;             // rule counts for each hypothesis
     vector<upper=0>[h] L[d];            // log likelihood of data.input
     vector<lower=0,upper=1>[h] R[d,q];  // is each data.query in each hypothesis  (1/0)
@@ -30,16 +30,10 @@ parameters {
 
 transformed parameters {
     real<lower=0> x_full[r];
-    int j;
 
-    j = 0;
-    for i in (1:r) {
-        if (P[i] > 0) {
-            x_full[i] = x_propose[j];
-            j = j + 1;
-        } else {
-            x_full[i] = x_init[i];
-        }
+    x_full <- x_init
+    for (i in 1:p) {
+        x_full[P[i]] <- x_propose[P[i]];
     }
 }
 
@@ -87,16 +81,19 @@ model {
 import pystan, pickle
 import numpy as np
 
-with open('stan_data.p', 'rb') as f:
+
+date_dir = '8_11/'
+
+with open(date_dir+'stan_data.p', 'rb') as f:
     stan_data = pickle.load(f)
 
 stan_model = pystan.StanModel(model_code=stan_code)
 fit = stan_model.sampling(data=stan_data, iter=1000, chains=4, warmup=10)
 
 print(fit)
-with open('stan_model.p', 'w') as f:
+with open(date_dir+'stan_model.p', 'w') as f:
     pickle.dump(stan_model, f)
-with open('stan_fit.p', 'w') as f:
+with open(date_dir+'stan_fit.p', 'w') as f:
     pickle.dump(fit, f)
 
 la = fit.extract(permuted=True)  # return a dictionary of arrays

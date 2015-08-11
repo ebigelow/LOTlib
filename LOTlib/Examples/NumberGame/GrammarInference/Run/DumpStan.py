@@ -10,8 +10,8 @@ import os, pickle
 
 # Set up data
 path = os.getcwd() + '/'
-f1 = open(path + 'human_data.p')
-data = pickle.load(f1)
+with open(path + 'human_data.p') as f:
+    data = pickle.load(f)
 
 # Set up GrammarHypothesis
 ngh_file = path + 'out/ngh_lot300k1.p'
@@ -29,7 +29,7 @@ all_queries = set.union( *[set(d.queries) for d in data] )
 # int<lower=1> p;                     // # of rules proposed to
 #
 # real<lower=0> x_init[r]             // Initial rule probabilites (used for non-proposed indexes)
-# int<lower=0, upper=1> P[p];         // proposal mask
+# int<lower=0> P[p];         // proposal indexes
 # int<lower=0> C[h,r];                // rule counts for each hypothesis
 # vector<upper=0>[h] L[d];            // log likelihood of data.input
 # vector<lower=0,upper=1>[h] R[d,q];  // is each data.query in each hypothesis  (1/0)
@@ -39,9 +39,9 @@ all_queries = set.union( *[set(d.queries) for d in data] )
 # real beta;                          // inverse scale of prior gamma
 
 
-P = [int(i) for i in gh.get_propose_mask()]
+P = gh.get_propose_idxs()
 
-p = sum(P)
+p = len(P)
 h = len(gh.hypotheses)
 r = gh.n
 d = len(data)
@@ -84,6 +84,7 @@ stan_data = {
     'R': R
 }
 
-f2 = open('stan_data.p', 'w')
-pickle.dump(stan_data, f2)
+date_dir = '8_11/'
+with open(date_dir+'stan_data.p', 'w') as f:
+    pickle.dump(stan_data, f)
 
